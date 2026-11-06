@@ -1,0 +1,13 @@
+build/
+*.dll
+*.pdb
+*.blend
+*.fbx
+*.obj
+*.assets
+*.resS
+*.nobp
+*.log
+model-data/
+python-libs/
+NuclearOption_Data/

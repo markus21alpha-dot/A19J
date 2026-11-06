@@ -1,0 +1,9 @@
+[Info   :A-19J Jet Conversion] A19J BUILD CHECK PASSED: separate A-19J registered; 2 jets, no propfans, original A-19 unchanged.
+[Info   :A-19J Jet Conversion] A19J EXHAUST VISUAL CHECK PASSED: complete housings, circular lips and recessed interiors registered at near and distant LODs.
+[Info   :A-19J Jet Conversion] A19J RUNTIME VALIDATION PASSED: registration, clone isolation, original damage parts, electrical power, nozzle references, no afterburners.
+[Info   :A-19J Jet Conversion] A19J spawn validation: opening the offline encyclopedia.
+[Info   :A-19J Jet Conversion] A19J SPAWN VALIDATION PASSED: live offline encyclopedia aircraft, two initialized jet controls/states, attached nozzle physics and original airframe.
+[Info   :A-19J Jet Conversion] A19J run-up validation: restrained offline engine start, full throttle for 20 seconds.
+[Info   :A-19J Jet Conversion] A19J run-up result: engine_L = 47995 N, RPM ratio 1.000
+[Info   :A-19J Jet Conversion] A19J run-up result: engine_R = 47995 N, RPM ratio 1.000
+[Info   :A-19J Jet Conversion] A19J RUN-UP VALIDATION PASSED: two forward-facing jets spooled up and drew 21.07 kg of fuel. Restrained test, not a flight-handling test.

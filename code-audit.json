@@ -1,0 +1,28 @@
+{
+  "Scope": "Static direct-call and dependency review of the A19J plugin only; not a universal safety guarantee",
+  "References": [
+    "mscorlib",
+    "BepInEx",
+    "Assembly-CSharp",
+    "UnityEngine.CoreModule",
+    "0Harmony",
+    "com.nikkorap.blueprinter",
+    "UnityEngine.AudioModule",
+    "UnityEngine.ParticleSystemModule",
+    "System.Core",
+    "Mirage",
+    "UnityEngine.PhysicsModule"
+  ],
+  "DLLSHA256": "F706D17A6AED8EDEE0AE5F9D266107BE8987F3CCFBE2136F0EE50903465DCD6B",
+  "SourceSHA256": "A07EC8ADC828F4C373454EBAF382577707A1C01135CCD23C451731759B2D5BED",
+  "DirectMethodReferenceCount": 331,
+  "ForbiddenCalls": [],
+  "EnvironmentReads": [
+    "System.String System.Environment::GetEnvironmentVariable(System.String)"
+  ],
+  "ValidationSwitches": [
+    "A19J_VALIDATE",
+    "A19J_VALIDATE_SPAWN"
+  ],
+  "PInvokeMethods": []
+}
