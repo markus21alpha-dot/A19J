@@ -18,3 +18,7 @@ The original mod source and custom procedural exhaust geometry are distinct from
 - Unity and Mirage assemblies supplied with Nuclear Option
 
 These dependencies are not redistributed here. Their own licences, copyrights and installation requirements continue to apply. Linking to or depending on a project does not imply its author's endorsement of this mod.
+
+## NOMNOM permission clarification
+
+The plugin clones objects from the user's installed game at runtime; the repository previews are renders of that derived aircraft. No raw game meshes, textures, sounds, assemblies or asset bundles are distributed. Additional Shockfront permission has not been established. Clarification is being requested from NOMNOM maintainers about whether section 3.2 requires separate permission for this runtime reuse and the preview renders. This notice does not assert that permission has been granted.

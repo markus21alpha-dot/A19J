@@ -4,9 +4,9 @@ In vanilla, the A-19 Brawler runs on propellers.
 
 With **A-19J**, it trades them for twin jet engines while keeping its familiar airframe, armour and weapons—a fresh take on a dependable aircraft.
 
-**Work in progress · Version 0.1.1 · Nuclear Option 0.34.6**
+**Work in progress · Version 0.1.2 · Nuclear Option 0.34.6**
 
-[Download A19J.dll](https://github.com/markus21alpha-dot/A19J/releases/download/v0.1.1/A19J.dll) · [Project page](https://markus21alpha-dot.github.io/A19J/) · [Report an issue](https://github.com/markus21alpha-dot/A19J/issues)
+[Download A19J.dll](https://github.com/markus21alpha-dot/A19J/releases/download/v0.1.2/A19J.dll) · [Project page](https://markus21alpha-dot.github.io/A19J/) · [Report an issue](https://github.com/markus21alpha-dot/A19J/issues)
 
 ![A-19J model preview](A19J-rear.png)
 
@@ -44,7 +44,7 @@ Public catalog registration is being submitted to [NOMNOM](https://github.com/Ko
 
 1. Close Nuclear Option.
 2. Install [BepInEx 5 Mono x64](https://github.com/BepInEx/BepInEx/releases) and [Blueprinter 2.1.1](https://github.com/nikkorap/NOBlueprinter-Releases/releases/tag/2.1.1) if you do not already have them.
-3. Download **A19J.dll** from this repository's [v0.1.1 release](https://github.com/markus21alpha-dot/A19J/releases/tag/v0.1.1).
+3. Download **A19J.dll** from this repository's [v0.1.2 release](https://github.com/markus21alpha-dot/A19J/releases/tag/v0.1.2).
 4. Put it in `Nuclear Option/BepInEx/plugins/A19J/A19J.dll`.
 5. Start the game normally.
 
@@ -54,20 +54,24 @@ Do not install a second copy of the DLL if you already have A-19J. To remove thi
 
 Open **Encyclopedia → Aircraft → A-19J** to inspect the aircraft. For a flight test, add A-19J as a flyable aircraft in a single-player Mission Editor mission and use the normal aircraft and engine-start controls.
 
-Existing missions can restrict aircraft inventories. Registering the variant does not automatically grant it to every saved mission. Hangars whose aircraft list includes the original A-19 also receive A-19J in that list.
+Existing missions can restrict aircraft inventories. Registering the variant does not automatically grant it to every saved mission. In offline sessions, hangars whose aircraft list includes the original A-19 also receive A-19J in that list.
 
 ## Development notes
 
 - The mod is still under development.
 - Flight performance and balance are still being tested.
-- Multiplayer compatibility has not been verified. This release is intended for single-player testing; it is not advertised as a client-only multiplayer mod. Do not use it to gain an advantage on servers that have not agreed to use the mod.
+- **Offline-only is enforced in code.** A-19J is not registered or offered in online hosts or remote clients, and its spawn path requires a confirmed offline, non-listening local host. Unknown modes are denied. There is no multiplayer enable switch.
 - Feedback and suggestions are welcome through the Issues tab.
 
-The exact released DLL passed compilation, separate registration, prefab/reference ownership, damage-part preservation, electrical connections and live offline encyclopedia spawning. A restrained 20-second engine run-up reached approximately **47,995 N per engine** at full RPM and consumed approximately **21 kg of fuel**. All 15 existing mod files on the test installation were unchanged.
+The exact released DLL passed compilation, separate registration, prefab/reference ownership, damage-part preservation, electrical connections and live offline encyclopedia spawning. A restrained 20-second engine run-up reached approximately **47,995 N per engine** at full RPM and consumed approximately **21 kg of fuel**. Other installed plugin DLLs were checked against a fresh pre-update baseline and were unchanged.
 
-Headless checks do not assess rendered in-game appearance, perceived sound quality or full flight handling. Takeoff, landing, sustained flight, combat balance and multiplayer remain unverified. The model previews were reviewed separately.
+Headless checks do not assess rendered in-game appearance, perceived sound quality or full flight handling. Takeoff, landing, sustained flight and combat balance remain unverified. Multiplayer use is disabled. The model previews were reviewed separately. Offline-guard probes covered all five online socket modes, an unknown mode, repeated session transitions and preservation of a later definition. A call through the patched spawner was rejected before instantiation without opening an online socket.
 
 See [test-report.json](test-report.json), [validation-evidence.txt](validation-evidence.txt) and [code-audit.json](code-audit.json) for the test scope and released DLL hash. The direct-call audit covers this plugin, not every dependency or installed mod.
+
+## Offline restriction
+
+Version 0.1.2 replaces the earlier advisory-only single-player warning. Both native host and client startup use the patched connection-mode boundary. Offline registration is reversible, removes its own definition and prefab on online transitions or disconnect, and preserves the remaining definition order. A separate spawn check also requires an active non-listening server and local host client. The mod does not stop ordinary multiplayer sessions or change stock aircraft.
 
 ## Source
 
@@ -80,3 +84,4 @@ Two explicit developer environment switches enable background checks: `A19J_VALI
 Original mod code and custom procedural exhaust geometry: **markus21alpha-dot**, developed with AI assistance. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The MIT licence covers original mod content only; it does not grant rights to Nuclear Option or its assets.
 
 This is an unofficial community mod, not affiliated with or endorsed by Shockfront Studios.
+

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using BepInEx;
 using HarmonyLib;
+using NuclearOption.Networking;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
@@ -17,7 +18,7 @@ namespace A19JConversion
     public sealed class A19JPlugin : BaseUnityPlugin
     {
         public const string Guid = "local.a19j.jetconversion";
-        public const string Version = "0.1.1";
+        public const string Version = "0.1.2";
         public const string AircraftKey = "A19J";
         // A deterministic identity distinct from the stock aircraft. Registration
         // refuses to proceed on a collision, instead of changing another prefab.
@@ -29,6 +30,7 @@ namespace A19JConversion
         private Harmony harmony;
         private bool building;
         private bool spawnValidationFailed;
+        private static bool offlineConfigured;
         private const BindingFlags Fields = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
         private void Awake()
@@ -36,6 +38,13 @@ namespace A19JConversion
             instance = this;
             harmony = new Harmony(Guid);
             harmony.Patch(AccessTools.Method(typeof(Hangar), "Awake"), postfix: new HarmonyMethod(typeof(A19JPlugin), nameof(HangarAwake)));
+            // Both StartHostAsync and StartClient pass through this shared boundary.
+            // In particular, an online listen host is NOT an offline session.
+            harmony.Patch(AccessTools.Method(typeof(NetworkManagerNuclearOption), "ConfigureNetwork"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(NetworkConfigured)));
+            harmony.Patch(AccessTools.Method(typeof(NetworkManagerNuclearOption), "StopAsync"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(SessionStopped)));
+            harmony.Patch(AccessTools.Method(typeof(NetworkManagerNuclearOption), "ServerStopped"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(SessionStopped)));
+            harmony.Patch(AccessTools.Method(typeof(NetworkManagerNuclearOption), "ClientDisconnected"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(SessionStopped)));
+            harmony.Patch(AccessTools.Method(typeof(Spawner), "SpawnAircraft"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(GuardAircraftSpawn)));
             Blueprinter.Api.StateChanged += OnBlueprinterState;
             SceneManager.sceneLoaded += OnSceneLoaded;
             if (Blueprinter.Api.CurrentState == Blueprinter.Api.State.Ready) Build();
@@ -174,16 +183,9 @@ namespace A19JConversion
                 }
                 ValidatePrefab(definition);
 
-                // Append the new definition/index. Existing network definition
-                // indices are not reordered or rewritten.
-                ((INetworkDefinition)definition).LookupIndex = encyclopedia.IndexLookup.Count;
-                encyclopedia.IndexLookup.Add(definition);
-                encyclopedia.aircraft.Add(definition);
-                Encyclopedia.Lookup.Add(AircraftKey, definition);
-                Set(encyclopedia, "aircraftAndVehiclesCache", null);
                 Variant = definition;
-                AddToLoadedHangars();
-                Logger.LogInfo("A19J BUILD CHECK PASSED: separate A-19J registered; 2 jets, no propfans, original A-19 unchanged.");
+                SetAvailability(offlineConfigured);
+                Logger.LogInfo("A19J BUILD CHECK PASSED: separate A-19J built for offline registration; 2 jets, no propfans, original A-19 unchanged.");
                 Logger.LogInfo("A19J EXHAUST VISUAL CHECK PASSED: complete housings, circular lips and recessed interiors registered at near and distant LODs.");
                 Logger.LogInfo("A19J settings: 2 x 48 kN, no afterburners, stock A-19 weapons/armour; single-player flight validation required.");
             }
@@ -438,16 +440,129 @@ namespace A19JConversion
         }
 
         private static void HangarAwake(Hangar __instance) { AddToHangar(__instance); }
+        private static bool IsOfflineSession()
+        {
+            if (!offlineConfigured || !NetworkManagerNuclearOption.IsLoaded) return false;
+            var manager = NetworkManagerNuclearOption.i;
+            return manager.Server != null && manager.Server.Active && !manager.Server.Listening
+                && manager.Client != null && manager.Client.IsHost;
+        }
+
+        private static void NetworkConfigured(SocketType __0)
+        {
+            offlineConfigured = __0 == SocketType.Offline;
+            SetAvailability(offlineConfigured);
+        }
+
+        private static void SessionStopped()
+        {
+            offlineConfigured = false;
+            SetAvailability(false);
+        }
+
+        private static void SetAvailability(bool available)
+        {
+            if (Variant == null) return;
+            var encyclopedia = Encyclopedia.i;
+            if (available)
+            {
+                if (!encyclopedia.IndexLookup.Contains(Variant))
+                {
+                    ((INetworkDefinition)Variant).LookupIndex = encyclopedia.IndexLookup.Count;
+                    encyclopedia.IndexLookup.Add(Variant);
+                }
+                if (!encyclopedia.aircraft.Contains(Variant)) encyclopedia.aircraft.Add(Variant);
+                Encyclopedia.Lookup[AircraftKey] = Variant;
+            }
+            else
+            {
+                encyclopedia.aircraft.Remove(Variant);
+                if (Encyclopedia.Lookup.TryGetValue(AircraftKey, out var entry) && entry == Variant)
+                    Encyclopedia.Lookup.Remove(AircraftKey);
+                int removed = encyclopedia.IndexLookup.IndexOf(Variant);
+                if (removed >= 0)
+                {
+                    encyclopedia.IndexLookup.RemoveAt(removed);
+                    // Restore indices after removing our entry, including definitions
+                    // another mod may have appended during the offline session.
+                    for (int i = removed; i < encyclopedia.IndexLookup.Count; i++)
+                        encyclopedia.IndexLookup[i].LookupIndex = i;
+                }
+                ((INetworkDefinition)Variant).LookupIndex = -1;
+                if (NetworkManagerNuclearOption.IsLoaded)
+                    NetworkManagerNuclearOption.i.ClientObjectManager.UnregisterPrefab(Variant.unitPrefab.GetComponent<Mirage.NetworkIdentity>());
+            }
+            Set(encyclopedia, "aircraftAndVehiclesCache", null);
+            AddToLoadedHangars();
+        }
+
+        private static bool GuardAircraftSpawn(GameObject __1, ref Aircraft __result)
+        {
+            if (Variant == null || __1 != Variant.unitPrefab || IsOfflineSession()) return true;
+            __result = null;
+            instance.Logger.LogWarning("A-19J spawn blocked: this build requires a confirmed offline local-host session.");
+            return false;
+        }
+
         private static void AddToHangar(Hangar hangar)
         {
             if (Variant == null || Original == null) return;
             var list = Get<AircraftDefinition[]>(hangar, "availableAircraft");
-            if (list == null || !list.Contains(Original) || list.Contains(Variant)) return;
+            if (list == null) return;
+            if (!offlineConfigured)
+            {
+                if (list.Contains(Variant)) Set(hangar, "availableAircraft", list.Where(x => x != Variant).ToArray());
+                return;
+            }
+            if (!list.Contains(Original) || list.Contains(Variant)) return;
             Set(hangar, "availableAircraft", list.Concat(new[] { Variant }).ToArray());
         }
         private static void AddToLoadedHangars()
         {
             foreach (var hangar in Resources.FindObjectsOfTypeAll<Hangar>()) AddToHangar(hangar);
+        }
+
+        private void ValidateOfflineGuard()
+        {
+            SessionStopped();
+            var encyclopedia = Encyclopedia.i;
+            var baseline = encyclopedia.IndexLookup.ToArray();
+            foreach (var mode in Enum.GetValues(typeof(SocketType)).Cast<SocketType>().Concat(new[] { (SocketType)999 }))
+            {
+                NetworkConfigured(SocketType.Offline);
+                NetworkConfigured(SocketType.Offline);
+                if (encyclopedia.IndexLookup.Count(x => ReferenceEquals(x, Variant)) != 1)
+                    throw new InvalidOperationException("Offline registration was duplicated.");
+                NetworkConfigured(mode);
+                if (mode == SocketType.Offline) SessionStopped();
+                Aircraft result = null;
+                if (IsOfflineSession() || GuardAircraftSpawn(Variant.unitPrefab, ref result))
+                    throw new InvalidOperationException("Non-offline/unknown session allowed A-19J: " + mode);
+                if (!GuardAircraftSpawn(Original.unitPrefab, ref result))
+                    throw new InvalidOperationException("The guard blocked the stock A-19.");
+                if (!encyclopedia.IndexLookup.SequenceEqual(baseline) || encyclopedia.aircraft.Contains(Variant)
+                    || Encyclopedia.Lookup.ContainsKey(AircraftKey))
+                    throw new InvalidOperationException("Disabled A-19J left a registration behind.");
+                foreach (var hangar in Resources.FindObjectsOfTypeAll<Hangar>())
+                    if (Get<AircraftDefinition[]>(hangar, "availableAircraft")?.Contains(Variant) == true)
+                        throw new InvalidOperationException("Disabled A-19J remained in a hangar.");
+            }
+            // Exercise a later definition without discarding or reordering it.
+            var later = ScriptableObject.CreateInstance<AircraftDefinition>();
+            try
+            {
+                NetworkConfigured(SocketType.Offline);
+                ((INetworkDefinition)later).LookupIndex = encyclopedia.IndexLookup.Count;
+                encyclopedia.IndexLookup.Add(later);
+                SessionStopped();
+                if (!ReferenceEquals(encyclopedia.IndexLookup.Last(), later) || ((INetworkDefinition)later).LookupIndex != baseline.Length)
+                    throw new InvalidOperationException("Removing A-19J did not preserve a later definition.");
+            }
+            finally { encyclopedia.IndexLookup.Remove(later); Object.DestroyImmediate(later); }
+            foreach (var name in new[] { "ConfigureNetwork", "StopAsync", "ServerStopped", "ClientDisconnected" })
+                if (!Harmony.GetPatchInfo(AccessTools.Method(typeof(NetworkManagerNuclearOption), name)).Prefixes.Any(x => x.owner == Guid))
+                    throw new InvalidOperationException("Missing session guard patch: " + name);
+            Logger.LogInfo("A19J OFFLINE GUARD VALIDATION PASSED: all online socket modes and unknown mode denied, stock A-19 allowed, repeated registration/removal and later definition preserved.");
         }
 
         private IEnumerator ValidationMode()
@@ -458,6 +573,8 @@ namespace A19JConversion
             try
             {
                 if (Variant == null) throw new InvalidOperationException("A-19J did not finish registration.");
+                ValidateOfflineGuard();
+                NetworkConfigured(SocketType.Offline);
                 ValidatePrefab(Variant);
                 var prefab = Variant.unitPrefab;
                 if (prefab.activeInHierarchy) throw new InvalidOperationException("Stored aircraft prefab unexpectedly active.");
@@ -482,6 +599,7 @@ namespace A19JConversion
                 exitCode = 0;
             }
             catch (Exception ex) { Logger.LogError("A19J RUNTIME VALIDATION FAILED: " + ex); }
+            SessionStopped();
             if (exitCode == 0 && Environment.GetEnvironmentVariable("A19J_VALIDATE_SPAWN") == "1")
             {
                 yield return SpawnValidationMode();
@@ -527,6 +645,18 @@ namespace A19JConversion
             }
             if (browser == null) { SpawnValidationError("Offline encyclopedia did not initialize."); yield break; }
             yield return new WaitForSecondsRealtime(2f);
+            try
+            {
+                if (!IsOfflineSession()) throw new InvalidOperationException("Stock offline host was not recognised.");
+                NetworkConfigured(SocketType.Steam);
+                var blocked = AccessTools.Method(typeof(Spawner), "SpawnAircraft").Invoke(Spawner.i, new object[]
+                { null, Variant.unitPrefab, null, 1f, default(LiveryKey), default(GlobalPosition), Quaternion.identity, Vector3.zero, null, null, "A19J guard test", 1f, 0.5f });
+                if (blocked != null) throw new InvalidOperationException("Patched spawner did not reject the online-mode probe.");
+                NetworkConfigured(SocketType.Offline);
+                Logger.LogInfo("A19J PATCHED SPAWN GUARD PASSED: online-mode probe rejected before instantiation without opening an online socket; actual offline local host accepted.");
+            }
+            catch (Exception ex) { SpawnValidationError(ex.ToString()); }
+            if (spawnValidationFailed) yield break;
             try { AccessTools.Method(typeof(EncyclopediaBrowser), "RemoveUnit").Invoke(browser, null); }
             catch (Exception ex) { SpawnValidationError(ex.ToString()); }
             if (spawnValidationFailed) yield break;
