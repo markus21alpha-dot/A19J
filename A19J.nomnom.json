@@ -1,7 +1,7 @@
 {
   "id": "A19J",
   "displayName": "A-19J — Jet-Powered Brawler",
-  "description": "A separate jet-powered A-19 Brawler variant. Twin conventional jets, complete custom exhaust housings, and the familiar A-19 cockpit, weapons and armour. AI-assisted development. Enforced offline-only test release. Online hosts and remote clients are disabled; flight balance still needs testing.",
+  "description": "A separate jet-powered A-19 Brawler variant. Twin conventional jets, complete custom exhaust housings, and the familiar A-19 cockpit, weapons and armour. AI-assisted development. Faction inventory and factory stock integration. Enforced offline-only test release; flight balance still needs testing.",
   "tags": [
     "Aircraft",
     "blueprinter",
@@ -30,6 +30,21 @@
   "imageUrl": "https://raw.githubusercontent.com/markus21alpha-dot/A19J/main/thumbnail.png",
   "imageHash": "sha256:8c659630ce6c0f2e7bdd4dc922f2188f19164b56149991245188182791cf847c",
   "artifacts": [
+    {
+      "fileName": "A19J.dll",
+      "version": "0.1.3",
+      "category": "preRelease",
+      "type": "plugin",
+      "gameVersion": "0.34.6",
+      "downloadUrl": "https://github.com/markus21alpha-dot/A19J/releases/download/v0.1.3/A19J.dll",
+      "hash": "sha256:7eabc38a1965c0c4a117c27170139817350de31afbe0e4e31a3ea0663ac54601",
+      "dependencies": [
+        {
+          "version": "2.1.1",
+          "id": "com.nikkorap.blueprinter"
+        }
+      ]
+    },
     {
       "fileName": "A19J.dll",
       "version": "0.1.2",

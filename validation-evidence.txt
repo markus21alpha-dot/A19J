@@ -3,6 +3,7 @@
 [Info   :A-19J Jet Conversion] A19J OFFLINE GUARD VALIDATION PASSED: all online socket modes and unknown mode denied, stock A-19 allowed, repeated registration/removal and later definition preserved.
 [Info   :A-19J Jet Conversion] A19J RUNTIME VALIDATION PASSED: registration, clone isolation, original damage parts, electrical power, nozzle references, no afterburners.
 [Info   :A-19J Jet Conversion] A19J spawn validation: opening the offline encyclopedia.
+[Info   :A-19J Jet Conversion] A19J INVENTORY VALIDATION PASSED: real 99 stock, shared consumption, native A-19/A-19J factory production, depleted supply, queued A-19J refill, explicit stock and zero preserved, faction restrictions inherited, online cleanup.
 [Info   :A-19J Jet Conversion] A19J PATCHED SPAWN GUARD PASSED: online-mode probe rejected before instantiation without opening an online socket; actual offline local host accepted.
 [Info   :A-19J Jet Conversion] A19J SPAWN VALIDATION PASSED: live offline encyclopedia aircraft, two initialized jet controls/states, attached nozzle physics and original airframe.
 [Info   :A-19J Jet Conversion] A19J run-up validation: restrained offline engine start, full throttle for 20 seconds.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3 — 2026-11-08
+
+- Fix missing A-19J faction stock in existing missions by using the A-19 conversion pool when no independent A19J supply is authored.
+- Synchronize real stock consumption, factory production and queued A-19J replacement requests.
+- Preserve authored A19J stock counts and explicit zero, and inherit A-19 faction restrictions when sharing stock.
+- Handle zero placeholders and delayed faction setup; retain offline-only enforcement.
+- Verify native inventory and factory behavior in isolated offline fixtures, then repeat live spawning and engine checks.
+
+
 ## 0.1.2 — 2026-11-07
 
 - Enforce offline-only aircraft registration and spawning; online hosts, clients and unknown modes are denied.

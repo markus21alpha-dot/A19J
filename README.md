@@ -4,9 +4,9 @@ In vanilla, the A-19 Brawler runs on propellers.
 
 With **A-19J**, it trades them for twin jet engines while keeping its familiar airframe, armour and weapons—a fresh take on a dependable aircraft.
 
-**Work in progress · Version 0.1.2 · Nuclear Option 0.34.6**
+**Work in progress · Version 0.1.3 · Nuclear Option 0.34.6**
 
-[Download A19J.dll](https://github.com/markus21alpha-dot/A19J/releases/download/v0.1.2/A19J.dll) · [Project page](https://markus21alpha-dot.github.io/A19J/) · [Report an issue](https://github.com/markus21alpha-dot/A19J/issues)
+[Download A19J.dll](https://github.com/markus21alpha-dot/A19J/releases/download/v0.1.3/A19J.dll) · [Project page](https://markus21alpha-dot.github.io/A19J/) · [Report an issue](https://github.com/markus21alpha-dot/A19J/issues)
 
 ![A-19J model preview](A19J-rear.png)
 
@@ -38,13 +38,13 @@ Requires a legitimate installed copy of **Nuclear Option**, **BepInEx 5 Mono x64
 
 ### NOMM
 
-A-19J was accepted into the official [NOMNOM registry on 8 November 2026](https://github.com/KopterBuzz/NOMNOM/pull/500) and is available through [NOMM](https://github.com/Combat787/NOMM). Refresh the catalog and search for **A19J**. Version 0.1.2 is a development prerelease with offline-only use enforced in code. The manual installation below remains available.
+A-19J was accepted into the official [NOMNOM registry on 8 November 2026](https://github.com/KopterBuzz/NOMNOM/pull/500) and is available through [NOMM](https://github.com/Combat787/NOMM). Refresh the catalog and search for **A19J**. Version 0.1.3 is a development prerelease with offline-only use enforced in code. The manual installation below remains available.
 
 ### Manual
 
 1. Close Nuclear Option.
 2. Install [BepInEx 5 Mono x64](https://github.com/BepInEx/BepInEx/releases) and [Blueprinter 2.1.1](https://github.com/nikkorap/NOBlueprinter-Releases/releases/tag/2.1.1) if you do not already have them.
-3. Download **A19J.dll** from this repository's [v0.1.2 release](https://github.com/markus21alpha-dot/A19J/releases/tag/v0.1.2).
+3. Download **A19J.dll** from this repository's [v0.1.3 release](https://github.com/markus21alpha-dot/A19J/releases/tag/v0.1.3).
 4. Put it in `Nuclear Option/BepInEx/plugins/A19J/A19J.dll`.
 5. Start the game normally.
 
@@ -55,6 +55,14 @@ Do not install a second copy of the DLL if you already have A-19J. To remove thi
 Open **Encyclopedia → Aircraft → A-19J** to inspect the aircraft. For a flight test, add A-19J as a flyable aircraft in a single-player Mission Editor mission and use the normal aircraft and engine-start controls.
 
 Existing missions can restrict aircraft inventories. Registering the variant does not automatically grant it to every saved mission. In offline sessions, hangars whose aircraft list includes the original A-19 also receive A-19J in that list.
+
+## Faction inventory and factories
+
+Version 0.1.3 fixes the missing faction stock number. In existing missions without an explicit A19J supply entry, A-19J is offered as a conversion of the faction's A-19 airframes. Both aircraft display the same real stock count: requesting either consumes one airframe from that shared pool, and native A-19 or A-19J factory production replenishes it. Queued A-19J requests can receive replacements from A-19 factories.
+
+Mission authors can give A-19J an independent stock pool by including an A19J supply entry. An explicit zero remains zero. Shared stock also inherits the original A-19 faction restriction. The count shows 99 when that faction actually has 99 available airframes.
+
+After updating, restart the mission so faction inventories are initialized with the new integration.
 
 ## Development notes
 
@@ -71,7 +79,7 @@ See [test-report.json](test-report.json), [validation-evidence.txt](validation-e
 
 ## Offline restriction
 
-Version 0.1.2 replaces the earlier advisory-only single-player warning. Both native host and client startup use the patched connection-mode boundary. Offline registration is reversible, removes its own definition and prefab on online transitions or disconnect, and preserves the remaining definition order. A separate spawn check also requires an active non-listening server and local host client. The mod does not stop ordinary multiplayer sessions or change stock aircraft.
+The offline-only restriction introduced in version 0.1.2 is retained. Both native host and client startup use the patched connection-mode boundary. Offline registration is reversible, removes its own definition and prefab on online transitions or disconnect, and preserves the remaining definition order. A separate spawn check also requires an active non-listening server and local host client. The mod does not stop ordinary multiplayer sessions or change stock aircraft.
 
 ## Source
 

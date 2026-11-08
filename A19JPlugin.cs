@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using BepInEx;
 using HarmonyLib;
 using NuclearOption.Networking;
@@ -18,7 +19,7 @@ namespace A19JConversion
     public sealed class A19JPlugin : BaseUnityPlugin
     {
         public const string Guid = "local.a19j.jetconversion";
-        public const string Version = "0.1.2";
+        public const string Version = "0.1.3";
         public const string AircraftKey = "A19J";
         // A deterministic identity distinct from the stock aircraft. Registration
         // refuses to proceed on a collision, instead of changing another prefab.
@@ -31,6 +32,10 @@ namespace A19JConversion
         private bool building;
         private bool spawnValidationFailed;
         private static bool offlineConfigured;
+        private static readonly HashSet<FactionHQ> sharedStockFactions = new HashSet<FactionHQ>();
+        private static readonly HashSet<FactionHQ> inheritedRestrictions = new HashSet<FactionHQ>();
+        private static readonly HashSet<FactionHQ> servicingRequests = new HashSet<FactionHQ>();
+        private static readonly Dictionary<FactionHQ, bool> authoredStock = new Dictionary<FactionHQ, bool>();
         private const BindingFlags Fields = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
         private void Awake()
@@ -45,6 +50,11 @@ namespace A19JConversion
             harmony.Patch(AccessTools.Method(typeof(NetworkManagerNuclearOption), "ServerStopped"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(SessionStopped)));
             harmony.Patch(AccessTools.Method(typeof(NetworkManagerNuclearOption), "ClientDisconnected"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(SessionStopped)));
             harmony.Patch(AccessTools.Method(typeof(Spawner), "SpawnAircraft"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(GuardAircraftSpawn)));
+            harmony.Patch(AccessTools.Method(typeof(FactionHQ), "OnMissionLoad"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(BeginFactionLoad)), postfix: new HarmonyMethod(typeof(A19JPlugin), nameof(FactionLoaded)));
+            harmony.Patch(AccessTools.Method(typeof(FactionHQ), "OnDestroy"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(FactionLoading)));
+            harmony.Patch(AccessTools.Method(typeof(FactionHQ), "ModifyUnitSupply"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(SupplyChanging)), postfix: new HarmonyMethod(typeof(A19JPlugin), nameof(SupplyChanged)));
+            harmony.Patch(AccessTools.Method(typeof(FactionHQ), "GetUnitSupply"), prefix: new HarmonyMethod(typeof(A19JPlugin), nameof(SupplyReading)));
+            harmony.Patch(AccessTools.Method(typeof(FactionHQ), "AddSupplyUnit"), postfix: new HarmonyMethod(typeof(A19JPlugin), nameof(SupplyDelivered)));
             Blueprinter.Api.StateChanged += OnBlueprinterState;
             SceneManager.sceneLoaded += OnSceneLoaded;
             if (Blueprinter.Api.CurrentState == Blueprinter.Api.State.Ready) Build();
@@ -70,7 +80,13 @@ namespace A19JConversion
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (Variant != null) AddToLoadedHangars();
+            if (Variant != null)
+            {
+                AddToLoadedHangars();
+                if (IsOfflineSession())
+                    foreach (var hq in Resources.FindObjectsOfTypeAll<FactionHQ>())
+                        if (hq.gameObject.scene.isLoaded && hq.IsServer) FactionLoaded(hq);
+            }
         }
 
         private static FieldInfo FindField(Type type, string name)
@@ -463,6 +479,11 @@ namespace A19JConversion
         private static void SetAvailability(bool available)
         {
             if (Variant == null) return;
+            if (!available)
+            {
+                foreach (var hq in sharedStockFactions.ToArray()) FactionLoading(hq);
+                authoredStock.Clear();
+            }
             var encyclopedia = Encyclopedia.i;
             if (available)
             {
@@ -522,6 +543,96 @@ namespace A19JConversion
             foreach (var hangar in Resources.FindObjectsOfTypeAll<Hangar>()) AddToHangar(hangar);
         }
 
+        private static void FactionLoading(FactionHQ __instance)
+        {
+            if (sharedStockFactions.Remove(__instance) && __instance != null && Variant != null && !__instance.AircraftSupply.IsReadOnly)
+                __instance.AircraftSupply.Remove(Variant);
+            if (inheritedRestrictions.Remove(__instance) && __instance != null)
+                __instance.restrictedAircraft.Remove(AircraftKey);
+            servicingRequests.Remove(__instance);
+            authoredStock.Remove(__instance);
+        }
+
+        private static void BeginFactionLoad(FactionHQ __instance, NuclearOption.SavedMission.Mission __0)
+        {
+            FactionLoading(__instance);
+            if (!offlineConfigured) return;
+            __0.GetFactionFromHq(__instance, out var settings);
+            authoredStock[__instance] = settings.supplies.Any(x => x.UnitType == AircraftKey);
+        }
+
+        private static void FactionLoaded(FactionHQ __instance)
+        {
+            if (!IsOfflineSession() || Variant == null || Original == null || __instance == null) return;
+            if (sharedStockFactions.Contains(__instance)) { SyncSharedStock(__instance); return; }
+            // An authored A19J entry, including an explicit zero, remains independent.
+            // Legacy missions instead offer A-19J as a conversion of an A-19 airframe.
+            if (authoredStock.TryGetValue(__instance, out bool independent))
+            {
+                if (independent || (__instance.AircraftSupply.TryGetValue(Variant, out var supplied) && supplied.Count > 0)) return;
+            }
+            else if (__instance.AircraftSupply.ContainsKey(Variant)) return;
+            sharedStockFactions.Add(__instance);
+            if (__instance.restrictedAircraft.Contains(Original.jsonKey) && !__instance.restrictedAircraft.Contains(AircraftKey))
+            {
+                __instance.restrictedAircraft.Add(AircraftKey);
+                inheritedRestrictions.Add(__instance);
+            }
+            SyncSharedStock(__instance);
+        }
+
+        private static void SyncSharedStock(FactionHQ hq)
+        {
+            if (!IsOfflineSession() || !sharedStockFactions.Contains(hq) || hq == null) return;
+            int count = hq.AircraftSupply.TryGetValue(Original, out var supply) ? supply.Count : 0;
+            if (!hq.AircraftSupply.TryGetValue(Variant, out var current) || current.Count != count)
+                hq.AircraftSupply[Variant] = new FactionHQ.RuntimeSupply(count);
+        }
+
+        private static void SupplyReading(FactionHQ __instance, UnitDefinition __0)
+        {
+            if (__0 != Variant) return;
+            // Also cover loading orders where the local host was not fully active
+            // when the mission-load postfix ran, or the definition was built late.
+            if (!sharedStockFactions.Contains(__instance) && authoredStock.ContainsKey(__instance)) FactionLoaded(__instance);
+            SyncSharedStock(__instance);
+        }
+
+        private static void SupplyChanging(FactionHQ __instance, ref UnitDefinition __0)
+        {
+            if (IsOfflineSession() && __0 == Variant && sharedStockFactions.Contains(__instance))
+                __0 = Original;
+        }
+
+        private static void SupplyChanged(FactionHQ __instance) { SyncSharedStock(__instance); }
+
+        private static void SupplyDelivered(FactionHQ __instance, UnitDefinition __0, int __1)
+        {
+            SyncSharedStock(__instance);
+            if (__1 <= 0 || (__0 != Original && __0 != Variant) || !IsOfflineSession()
+                || !sharedStockFactions.Contains(__instance) || !servicingRequests.Add(__instance)) return;
+            try
+            {
+                // A stock A-19 factory normally checks only A-19 reservation requests.
+                // Retry queued conversions through the native request path once shared
+                // stock exists, preserving the requested aircraft and native rank checks.
+                var requests = Get<IDictionary>(__instance, "reserveRequests");
+                var players = new List<Player>();
+                foreach (DictionaryEntry request in requests)
+                    if (request.Key is Player player && player != null && Get<AircraftDefinition>(request.Value, "aircraftDefinition") == Variant)
+                        players.Add(player);
+                foreach (var player in players.OrderByDescending(x => x.PlayerScore))
+                {
+                    if (__instance.GetUnitSupply(Variant) <= 0) break;
+                    // Match the native AddSupplyUnit queue filter in this game version.
+                    if (player.CanAffordAirframe(Variant)) continue;
+                    requests.Remove(player);
+                    __instance.RequestReservedAirframe(player, Variant);
+                }
+            }
+            finally { servicingRequests.Remove(__instance); }
+        }
+
         private void ValidateOfflineGuard()
         {
             SessionStopped();
@@ -563,6 +674,145 @@ namespace A19JConversion
                 if (!Harmony.GetPatchInfo(AccessTools.Method(typeof(NetworkManagerNuclearOption), name)).Prefixes.Any(x => x.owner == Guid))
                     throw new InvalidOperationException("Missing session guard patch: " + name);
             Logger.LogInfo("A19J OFFLINE GUARD VALIDATION PASSED: all online socket modes and unknown mode denied, stock A-19 allowed, repeated registration/removal and later definition preserved.");
+        }
+
+        private void ValidateFactionInventory()
+        {
+            // Isolated native components in the explicit headless test process.
+            // These inactive fixtures never open a socket or enter a live mission.
+            var manager = NetworkManagerNuclearOption.i;
+            var hqObject = new GameObject("A19J_Inventory_Test_HQ");
+            hqObject.SetActive(false);
+            var hqIdentity = hqObject.AddComponent<Mirage.NetworkIdentity>();
+            var hq = hqObject.AddComponent<FactionHQ>();
+            var factoryObject = new GameObject("A19J_Inventory_Test_Factory");
+            factoryObject.SetActive(false);
+            var factoryIdentity = factoryObject.AddComponent<Mirage.NetworkIdentity>();
+            var building = factoryObject.AddComponent<Building>();
+            var factory = factoryObject.AddComponent<Factory>();
+            var faction = ScriptableObject.CreateInstance<Faction>();
+            faction.factionName = "A19J isolated inventory test";
+            hq.faction = faction;
+            var player = Resources.FindObjectsOfTypeAll<Player>().First(x => x.isActiveAndEnabled && x.IsServer && x.Owner != null);
+            var owned = player.OwnedAirframes.ToArray();
+            float value = Variant.value;
+            int rank = Variant.aircraftParameters.rankRequired;
+            var previousMissionManager = MissionManager.i;
+            GameObject missionObject = null;
+            try
+            {
+                if (previousMissionManager == null)
+                {
+                    // The encyclopedia has no mission clock component, but the native
+                    // Factory.ProduceUnit method records a production timestamp.
+                    missionObject = new GameObject("A19J_Inventory_Test_Clock");
+                    missionObject.SetActive(false);
+                    missionObject.AddComponent<Mirage.NetworkIdentity>();
+                    MissionManager.i = missionObject.AddComponent<MissionManager>();
+                }
+                AccessTools.Method(typeof(Mirage.NetworkIdentity), "SetServerValues").Invoke(hqIdentity, new object[] { manager.Server, manager.ServerObjectManager });
+                AccessTools.Method(typeof(Mirage.NetworkIdentity), "SetServerValues").Invoke(factoryIdentity, new object[] { manager.Server, manager.ServerObjectManager });
+                Set(hqIdentity, "<NetId>k__BackingField", 0x41313901u);
+                Set(factoryIdentity, "<NetId>k__BackingField", 0x41313902u);
+                building.NetworkHQ = hq;
+                Set(factory, "attachedUnit", building);
+                var settings = new NuclearOption.SavedMission.MissionFaction(faction.factionName);
+                settings.supplies.Add(new NuclearOption.SavedMission.UnitCount(Original.jsonKey, 99));
+                var mission = new NuclearOption.SavedMission.Mission();
+                mission.factions.Add(settings);
+                // Other installed mods assume a complete playable campaign in their
+                // OnMissionLoad postfixes. Use the original native loader only for
+                // this inactive fixture and apply our two hooks around it explicitly.
+                // No third-party patches are removed or changed.
+                harmony.CreateReversePatcher(AccessTools.Method(typeof(FactionHQ), "OnMissionLoad"),
+                    new HarmonyMethod(typeof(A19JPlugin), nameof(LoadNativeFactionFixture))).Patch(HarmonyReversePatchType.Original);
+                var loadPatches = Harmony.GetPatchInfo(AccessTools.Method(typeof(FactionHQ), "OnMissionLoad"));
+                if (!loadPatches.Prefixes.Any(x => x.owner == Guid) || !loadPatches.Postfixes.Any(x => x.owner == Guid))
+                    throw new InvalidOperationException("Faction inventory load hooks were not installed.");
+                Action load = () => { BeginFactionLoad(hq, mission); LoadNativeFactionFixture(hq, mission); FactionLoaded(hq); };
+                Action<UnitDefinition> produce = definition =>
+                {
+                    Set(factory, "productionUnit", definition);
+                    AccessTools.Method(typeof(Factory), "ProduceUnit").Invoke(factory, null);
+                };
+                Action<int, int> expect = (original, variant) =>
+                {
+                    if (hq.GetUnitSupply(Original) != original || hq.GetUnitSupply(Variant) != variant)
+                        throw new InvalidOperationException("Inventory mismatch; expected A-19/A-19J " + original + "/" + variant
+                            + ", got " + hq.GetUnitSupply(Original) + "/" + hq.GetUnitSupply(Variant));
+                };
+                load(); expect(99, 99);
+                Logger.LogInfo("A19J inventory check: native faction supply reports 99 A-19J airframes.");
+                if (!hq.AircraftSupply.ContainsKey(Variant)) throw new InvalidOperationException("A-19J has no real faction inventory entry.");
+                // Some loaders create zero placeholders for every registered aircraft.
+                // They must not be mistaken for an authored zero in the mission file.
+                BeginFactionLoad(hq, mission); LoadNativeFactionFixture(hq, mission);
+                hq.AircraftSupply[Variant] = new FactionHQ.RuntimeSupply(0);
+                FactionLoaded(hq); expect(99, 99);
+                BeginFactionLoad(hq, mission); LoadNativeFactionFixture(hq, mission);
+                expect(99, 99); // A first UI read must repair a deferred host setup.
+                hq.ModifyUnitSupply(Variant, -1); expect(98, 98);
+                hq.ModifyUnitSupply(Original, -1); expect(97, 97);
+                produce(Original); expect(98, 98);
+                produce(Variant); expect(99, 99);
+                hq.ModifyUnitSupply(Original, -99); expect(0, 0);
+                // Exercise the stock game's queue filter and rank path with explicit
+                // temporary test values, then restore the released aircraft settings.
+                Variant.value = float.MaxValue / 4f;
+                Variant.aircraftParameters.rankRequired = 0;
+                if (player.OwnsAirframe(Variant, true)) throw new InvalidOperationException("Test player already owns A-19J.");
+                hq.RequestReservedAirframe(player, Variant);
+                var requests = Get<IDictionary>(hq, "reserveRequests");
+                if (!requests.Contains(player)) throw new InvalidOperationException("Native reservation did not queue.");
+                produce(Original); expect(0, 0);
+                if (player.OwnedAirframeTypeCount(Variant, true) != 1 || requests.Contains(player))
+                    throw new InvalidOperationException("Factory refill did not grant exactly one queued A-19J and clear its request.");
+                Variant.value = value;
+                Variant.aircraftParameters.rankRequired = rank;
+                settings.supplies.Add(new NuclearOption.SavedMission.UnitCount(AircraftKey, 7));
+                load(); expect(99, 7);
+                hq.ModifyUnitSupply(Variant, -1); expect(99, 6);
+                produce(Original); expect(100, 6);
+                produce(Variant); expect(100, 7);
+                settings.supplies.Last().Count = 0;
+                load(); expect(99, 0);
+                produce(Original); expect(100, 0);
+                settings.supplies.Clear();
+                load(); expect(0, 0);
+                produce(Original); expect(1, 1);
+                settings.supplies.Add(new NuclearOption.SavedMission.UnitCount(Original.jsonKey, 99));
+                settings.restrictions = new NuclearOption.SavedMission.Restrictions
+                { aircraft = new List<string> { Original.jsonKey } };
+                load(); expect(99, 99);
+                if (!hq.restrictedAircraft.Contains(AircraftKey)) throw new InvalidOperationException("A-19 faction restriction was not inherited.");
+                NetworkConfigured(SocketType.Steam);
+                if (hq.AircraftSupply.ContainsKey(Variant) || hq.GetUnitSupply(Original) != 99)
+                    throw new InvalidOperationException("Online transition did not remove only the shared inventory entry.");
+                NetworkConfigured(SocketType.Offline);
+                Logger.LogInfo("A19J INVENTORY VALIDATION PASSED: real 99 stock, shared consumption, native A-19/A-19J factory production, depleted supply, queued A-19J refill, explicit stock and zero preserved, faction restrictions inherited, online cleanup.");
+            }
+            finally
+            {
+                Variant.value = value;
+                Variant.aircraftParameters.rankRequired = rank;
+                player.OwnedAirframes.Clear();
+                foreach (var airframe in owned) player.OwnedAirframes.Add(airframe);
+                FactionLoading(hq);
+                Set(hqIdentity, "<NetId>k__BackingField", 0u);
+                Set(factoryIdentity, "<NetId>k__BackingField", 0u);
+                Object.DestroyImmediate(factoryObject);
+                Object.DestroyImmediate(hqObject);
+                Object.DestroyImmediate(faction);
+                MissionManager.i = previousMissionManager;
+                if (missionObject != null) Object.DestroyImmediate(missionObject);
+                NetworkConfigured(SocketType.Offline);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void LoadNativeFactionFixture(FactionHQ hq, NuclearOption.SavedMission.Mission mission)
+        {
+            throw new InvalidOperationException("The explicit validation fixture has not installed its reverse patch.");
         }
 
         private IEnumerator ValidationMode()
@@ -648,6 +898,7 @@ namespace A19JConversion
             try
             {
                 if (!IsOfflineSession()) throw new InvalidOperationException("Stock offline host was not recognised.");
+                ValidateFactionInventory();
                 NetworkConfigured(SocketType.Steam);
                 var blocked = AccessTools.Method(typeof(Spawner), "SpawnAircraft").Invoke(Spawner.i, new object[]
                 { null, Variant.unitPrefab, null, 1f, default(LiveryKey), default(GlobalPosition), Quaternion.identity, Vector3.zero, null, null, "A19J guard test", 1f, 0.5f });
