@@ -21,4 +21,5 @@ These dependencies are not redistributed here. Their own licences, copyrights an
 
 ## NOMNOM permission clarification
 
-The plugin clones objects from the user's installed game at runtime; the repository previews are renders of that derived aircraft. No raw game meshes, textures, sounds, assemblies or asset bundles are distributed. Additional Shockfront permission has not been established. Clarification is being requested from NOMNOM maintainers about whether section 3.2 requires separate permission for this runtime reuse and the preview renders. This notice does not assert that permission has been granted.
+The plugin clones objects from the user's installed game at runtime; the repository previews are renders of that derived aircraft. No raw game meshes, textures, sounds, assemblies or asset bundles are distributed. On 8 November 2026, a [NOMNOM maintainer answered that additional permission was not required for the approach described](https://github.com/KopterBuzz/NOMNOM/pull/500#issuecomment-6716029120), and the registry submission was merged. This records the registry maintainer's clarification; it does not claim a separate licence or endorsement from Shockfront Studios.
+

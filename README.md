@@ -38,7 +38,7 @@ Requires a legitimate installed copy of **Nuclear Option**, **BepInEx 5 Mono x64
 
 ### NOMM
 
-Public catalog registration is being submitted to [NOMNOM](https://github.com/KopterBuzz/NOMNOM), which supplies [NOMM](https://github.com/Combat787/NOMM). Until that submission is approved, use the manual installation below. A pending submission does not mean the mod is already in the public catalog.
+A-19J was accepted into the official [NOMNOM registry on 8 November 2026](https://github.com/KopterBuzz/NOMNOM/pull/500) and is available through [NOMM](https://github.com/Combat787/NOMM). Refresh the catalog and search for **A19J**. Version 0.1.2 is a development prerelease with offline-only use enforced in code. The manual installation below remains available.
 
 ### Manual
 
@@ -84,4 +84,5 @@ Two explicit developer environment switches enable background checks: `A19J_VALI
 Original mod code and custom procedural exhaust geometry: **markus21alpha-dot**, developed with AI assistance. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The MIT licence covers original mod content only; it does not grant rights to Nuclear Option or its assets.
 
 This is an unofficial community mod, not affiliated with or endorsed by Shockfront Studios.
+
 
