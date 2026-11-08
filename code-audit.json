@@ -7,22 +7,52 @@
     "UnityEngine.CoreModule",
     "0Harmony",
     "System.Core",
+    "Mirage",
     "com.nikkorap.blueprinter",
     "UnityEngine.AudioModule",
     "UnityEngine.ParticleSystemModule",
-    "Mirage",
-    "UnityEngine.PhysicsModule"
+    "UniTask",
+    "Mirage.Sockets.Udp",
+    "Mirage.SocketLayer",
+    "UnityEngine.PhysicsModule",
+    "System"
   ],
-  "DLLSHA256": "7EABC38A1965C0C4A117C27170139817350DE31AFBE0E4E31A3EA0663AC54601",
-  "SourceSHA256": "E578050801AD6961E863E3001A244BEC6A3D8B1D602542115E7740B658F700AB",
-  "DirectMethodReferenceCount": 466,
+  "DLLSHA256": "DB0391726DFD8401254D46DD262EAB7D83EB42AD51B8403AD7BE216ADCEADF55",
+  "SourceSHA256": "42AAFEEBB6E5D2489FE76E64574C075A83E5368DEC29E0B628184F4D3E022953",
+  "SourceFiles": [
+    {
+      "File": "A19JPlugin.cs",
+      "SHA256": "42AAFEEBB6E5D2489FE76E64574C075A83E5368DEC29E0B628184F4D3E022953"
+    },
+    {
+      "File": "A19JNetworking.cs",
+      "SHA256": "DA6EE26ACCE4940C37AAFC323D47AF26880A992D88C29EE299D478A54F7ADFB2"
+    },
+    {
+      "File": "A19JMultiplayerValidation.cs",
+      "SHA256": "862439196190FD4D872B100C29019A5AE47ACD34548FFC7C8A8A87B3D2C09077"
+    }
+  ],
+  "DirectMethodReferenceCount": 646,
   "ForbiddenCalls": [],
   "EnvironmentReads": [
     "System.String System.Environment::GetEnvironmentVariable(System.String)"
   ],
   "ValidationSwitches": [
     "A19J_VALIDATE",
-    "A19J_VALIDATE_SPAWN"
+    "A19J_VALIDATE_SPAWN",
+    "A19J_VALIDATE_MULTIPLAYER"
   ],
+  "TestOnlyNetworkCalls": [
+    {
+      "Caller": "System.Void A19JConversion.A19JPlugin::ValidationLoopbackBind(Mirage.Sockets.Udp.UdpSocketFactory,Mirage.SocketLayer.IBindEndPoint&)",
+      "Call": "System.Void System.Net.IPEndPoint::.ctor(System.Net.IPAddress,System.Int32)"
+    },
+    {
+      "Caller": "System.Void A19JConversion.A19JPlugin::ValidationLoopbackBind(Mirage.Sockets.Udp.UdpSocketFactory,Mirage.SocketLayer.IBindEndPoint&)",
+      "Call": "System.Void Mirage.Sockets.Udp.UdpConnectionHandle::.ctor(System.Net.EndPoint)"
+    }
+  ],
+  "TestNetworkScope": "Only explicit A19J_VALIDATE=1 installs the loopback bind patch. Its endpoint is IPAddress.IPv6Loopback, the native transport is forced to managed UDP, and Steam transports are rejected in that disposable process. Ordinary gameplay uses native game networking.",
   "PInvokeMethods": []
 }

@@ -1,47 +1,35 @@
 # Building A-19J
 
-The released source is a single C# BepInEx plugin. The build script references assemblies from your own game installation; it does not download or bundle game code or dependencies.
+The DLL is built from A19JPlugin.cs, A19JNetworking.cs and A19JMultiplayerValidation.cs. All three files must remain beside build.ps1. It references assemblies from your own installed Nuclear Option 0.34.6, BepInEx 5 and Blueprinter 2.1.1; game code and dependency DLLs are not bundled.
 
-## Prerequisites
-
-- Windows PowerShell 7.
-- Nuclear Option 0.34.6, with its Mono managed assemblies.
-- BepInEx 5 Mono x64 in the game folder.
-- Blueprinter 2.1.1 at `BepInEx/plugins/com.nikkorap.blueprinter/Blueprinter_2.1.1.dll`.
-- The compiler and .NET runtime included in Unity Editor **2022.3.62f3**. The tested compiler reports `4.3.1-3.22526.13`.
-
-## Compile
-
-From this repository's root, run:
+Requires PowerShell 7 and Unity Editor 2022.3.62f3's bundled Roslyn compiler (tested version 4.3.1-3.22526.13).
 
 ```powershell
 pwsh -File ./build.ps1
-```
-
-If your paths differ:
-
-```powershell
+# For other installation locations:
 pwsh -File ./build.ps1 -GamePath 'D:\SteamLibrary\steamapps\common\Nuclear Option' -EditorDataPath 'D:\Unity\2022.3.62f3\Editor\Data'
+pwsh -File ./audit.ps1
 ```
 
-The output is `build/A19J.dll`. The compiler runs with optimisation and deterministic output enabled. The source is supplied as published; no generated source or private project files are needed.
+The output is build/A19J.dll. Compilation uses deterministic output and optimization. Exact reproduction requires the same compiler and reference assemblies. The test report records the game assembly hash; code-audit.json records each source hash and the DLL hash.
 
-Exact binary reproduction depends on the same compiler and reference assemblies. `test-report.json` records the tested game's `Assembly-CSharp.dll` SHA-256, and `code-audit.json` records the released DLL and source SHA-256 values. A different compiler or different game assemblies can produce a different binary without a source change.
+## Networking
 
-## Review
+The aircraft uses the native A-19 network behaviours and ownership/physics path, a distinct deterministic prefab hash, and an index appended after Blueprinter completes loading. Registration persists across offline/online transitions. Inventory writes require an active server, an authoritative FactionHQ and a writable supply dictionary; clients consume native replicated state.
 
-```powershell
-pwsh -File ./audit.ps1 -GamePath 'D:\SteamLibrary\steamapps\common\Nuclear Option'
-```
+A fixed-size pre-authentication compatibility message carries a protocol value, definition count and deterministic catalog checksum. Its reader/writer delegates are explicitly registered with Mirage. The native authentication result is awaited and preserved; compatibility is an additional check before native authentication completes. The checksum is a compatibility signal, not a security/authentication primitive.
 
-This performs a limited static review of assembly references and direct method calls, including nested compiler-generated methods. It flags direct filesystem/network/process/registry/native-loader calls. It is a review aid, not a universal safety guarantee.
+## Audit scope
 
-## Developer validation
+audit.ps1 examines direct calls including nested async/compiler-generated methods. It flags filesystem, general network, process, registry and native-loader calls. Two endpoint-construction calls are explicitly allowlisted only in ValidationLoopbackBind. This method is installed as a Harmony hook only under A19J_VALIDATE=1 and builds an IPAddress.IPv6Loopback endpoint. The test also forces managed UDP and rejects Steam transport configuration. No general socket/request/download API is used by the plugin. The audit is a review aid, not a universal safety guarantee.
 
-The released DLL includes explicit environment-controlled test routines. With `A19J_VALIDATE=1`, it validates separate registration and reference ownership, then exits the test game process. With `A19J_VALIDATE_SPAWN=1` as well, it opens the stock **offline encyclopedia**, spawns A-19J and performs a restrained 20-second engine run-up before exiting.
+## Disposable validation
 
-These tests are only intended for an isolated test launch. They do not replace normal flight or multiplayer testing. Do not set these environment switches for ordinary play. The validation branch's process-exit behaviour is present in the public source; no private code is injected into the release.
+Normal play requires none of the following environment switches.
 
-In v0.1.2, validation also exercises every current online socket mode plus an unknown mode, removal/re-registration, stock aircraft passthrough and preservation of later definitions. The spawn validation sends an online-mode probe through the patched native spawner inside the isolated offline test and restores offline mode; it creates no online connection. These probes do not constitute an online multiplayer session test. Normal operation accepts only confirmed offline local hosts.
+- A19J_VALIDATE=1: registration, prefab/reference ownership and compatibility checks; quits the test process.
+- Also A19J_VALIDATE_SPAWN=1: native offline encyclopedia spawn, isolated inventory/factory/queue fixtures, and restrained engine run-up.
+- Also A19J_VALIDATE_MULTIPLAYER=host or client: separate processes in a native Free Flight mission. The host's actual socket bind endpoint is forced to [::1]:28791. Both processes suppress native dedicated auto-start. No Steam lobby is created or joined by this test.
+- host-negative with a mismatch or missing client: verifies rejection before remote mission/player spawn. The mismatch/missing roles alter or suppress the test compatibility offer only when A19J_VALIDATE=1.
 
-Version 0.1.3 adds isolated native faction and factory fixtures for stock loading, consumption, production, queued replacements, authored stock and zero, faction restrictions, deferred initialization and online cleanup. The fixture calls the original native mission-load body through a validation-only Harmony reverse patch, avoiding unrelated third-party campaign callbacks on the deliberately minimal test mission; installed third-party patches remain unchanged. Temporary test price, rank, owned-airframe state and the offline mission-clock fixture are restored afterward. These are component-level checks, not a complete campaign playthrough.
+The multiplayer test receives the native mission/map, faction dictionary and aircraft prefab, checks both engines and their native state, and checks native despawning. It does not simulate a two-PC Steam session or certify flight balance. The isolated inventory fixture uses a validation-only reverse patch to the original mission-load body, with temporary price/rank/owned-airframe values restored afterward. Other installed mod DLLs are compared against a fresh baseline.

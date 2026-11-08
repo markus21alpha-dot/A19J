@@ -1,52 +1,53 @@
 {
-  "Version": "0.1.3",
-  "BuildDate": "2026-11-08",
-  "DLLSHA256": "7EABC38A1965C0C4A117C27170139817350DE31AFBE0E4E31A3EA0663AC54601",
+  "Version": "0.2.0",
+  "Date": "2026-11-08T22:14:08.5351183+03:00",
+  "DLLSHA256": "DB0391726DFD8401254D46DD262EAB7D83EB42AD51B8403AD7BE216ADCEADF55",
   "GameAssemblySHA256": "BABDD626BBAB5F01E6C244150C1E77C57C131EE86967214E2E5CED6D813C2BCE",
-  "Mode": "Background headless test in the stock offline encyclopedia; no remote lobby",
-  "Compilation": "passed",
-  "SeparateRegistration": "passed",
-  "OriginalA19PropfansPreserved": "passed",
-  "OwnedPrefabAndParameters": "passed",
-  "ForeignAircraftReferenceCheck": "passed",
-  "OriginalDamagePartCount": 33,
-  "DamagePartCountPreserved": "passed",
-  "ElectricalEngineConnections": "passed",
-  "LiveOfflineSpawn": "passed",
-  "LiveJetCount": 2,
-  "NozzlesOnLiveAircraftPhysics": "passed",
-  "AfterburnersAbsent": "passed",
-  "CompletedExhaustGeometry": "passed: housing, lip, liner and core meshes with materials and near/distant LOD references",
-  "RestrainedRunupDurationSeconds": 20,
-  "ForwardThrustAlignment": "passed: dot product >= 0.99",
-  "EngineRunupMeasurements": [
-    "[Info   :A-19J Jet Conversion] A19J run-up result: engine_L = 47995 N, RPM ratio 1.000",
-    "[Info   :A-19J Jet Conversion] A19J run-up result: engine_R = 47995 N, RPM ratio 1.000"
+  "Multiplayer": "passed: separate native host/client game processes in Free Flight - Heartland using managed UDP on [::1]:28791",
+  "MultiplayerCases": [
+    {
+      "Role": "client",
+      "Result": "passed",
+      "DLLSHA256": "DB0391726DFD8401254D46DD262EAB7D83EB42AD51B8403AD7BE216ADCEADF55",
+      "Started": "2026-11-08T22:06:48.3577278+03:00"
+    },
+    {
+      "Role": "host",
+      "Result": "passed",
+      "DLLSHA256": "DB0391726DFD8401254D46DD262EAB7D83EB42AD51B8403AD7BE216ADCEADF55",
+      "Started": "2026-11-08T22:06:36.7886094+03:00"
+    },
+    {
+      "Role": "mismatch",
+      "Result": "passed",
+      "DLLSHA256": "DB0391726DFD8401254D46DD262EAB7D83EB42AD51B8403AD7BE216ADCEADF55",
+      "Started": "2026-11-08T22:09:21.8789527+03:00"
+    },
+    {
+      "Role": "host-negative",
+      "Result": "passed",
+      "DLLSHA256": "DB0391726DFD8401254D46DD262EAB7D83EB42AD51B8403AD7BE216ADCEADF55",
+      "Started": "2026-11-08T22:10:23.6522942+03:00"
+    },
+    {
+      "Role": "missing",
+      "Result": "passed",
+      "DLLSHA256": "DB0391726DFD8401254D46DD262EAB7D83EB42AD51B8403AD7BE216ADCEADF55",
+      "Started": "2026-11-08T22:11:17.7644631+03:00"
+    }
   ],
-  "FuelDraw": "passed: positive and within the 1-50 kg test range",
-  "PreviousModFilesChecked": 13,
-  "PreviousModFilesUnchanged": 13,
-  "DirectCallAudit": "passed; see code-audit.json for scope",
-  "TakeoffLandingAndHandling": "not tested",
-  "RenderedInGameAppearanceAndSound": "not tested; model renders reviewed separately",
-  "Multiplayer": "disabled: only confirmed offline local hosts accepted",
-  "OfflineGuard": "passed: all five online socket modes, unknown mode, disconnect/reset, repeated registration, preserved later definition and stock A-19 passthrough",
-  "PatchedSpawnGuard": "passed: blocked online-mode probe through patched native Spawner before instantiation; no online socket opened",
-  "FactionInventory": "passed: native 99 stock, shared A-19/A-19J consumption and factory refill, empty stock and native queued conversion delivery",
-  "ExplicitMissionSupply": "passed: separately authored A19J counts and explicit zero preserved; original A-19 faction restriction inherited in shared mode",
-  "InventoryTestScope": "isolated inactive native faction/factory fixtures in the offline test host; temporary price/rank test inputs restored before live aircraft spawn; not a full campaign playthrough",
-  "Evidence": [
-    "[Info   :A-19J Jet Conversion] A19J BUILD CHECK PASSED: separate A-19J built for offline registration; 2 jets, no propfans, original A-19 unchanged.",
-    "[Info   :A-19J Jet Conversion] A19J EXHAUST VISUAL CHECK PASSED: complete housings, circular lips and recessed interiors registered at near and distant LODs.",
-    "[Info   :A-19J Jet Conversion] A19J OFFLINE GUARD VALIDATION PASSED: all online socket modes and unknown mode denied, stock A-19 allowed, repeated registration/removal and later definition preserved.",
-    "[Info   :A-19J Jet Conversion] A19J RUNTIME VALIDATION PASSED: registration, clone isolation, original damage parts, electrical power, nozzle references, no afterburners.",
-    "[Info   :A-19J Jet Conversion] A19J spawn validation: opening the offline encyclopedia.",
-    "[Info   :A-19J Jet Conversion] A19J INVENTORY VALIDATION PASSED: real 99 stock, shared consumption, native A-19/A-19J factory production, depleted supply, queued A-19J refill, explicit stock and zero preserved, faction restrictions inherited, online cleanup.",
-    "[Info   :A-19J Jet Conversion] A19J PATCHED SPAWN GUARD PASSED: online-mode probe rejected before instantiation without opening an online socket; actual offline local host accepted.",
-    "[Info   :A-19J Jet Conversion] A19J SPAWN VALIDATION PASSED: live offline encyclopedia aircraft, two initialized jet controls/states, attached nozzle physics and original airframe.",
-    "[Info   :A-19J Jet Conversion] A19J run-up validation: restrained offline engine start, full throttle for 20 seconds.",
-    "[Info   :A-19J Jet Conversion] A19J run-up result: engine_L = 47995 N, RPM ratio 1.000",
-    "[Info   :A-19J Jet Conversion] A19J run-up result: engine_R = 47995 N, RPM ratio 1.000",
-    "[Info   :A-19J Jet Conversion] A19J RUN-UP VALIDATION PASSED: two forward-facing jets spooled up and drew 21.09 kg of fuel. Restrained test, not a flight-handling test."
-  ]
+  "LateJoin": "passed: A-19J existed before client connection; matching prefab NetId and two Turbojets initialized remotely",
+  "FactionSupplyReplication": "passed: server and remote client reported 102 shared A-19J airframes in the native mission",
+  "EngineReplication": "passed: client reported ignition true, positive fuel, throttle 1 and RPM ratio 0.999 for two native jet engines",
+  "Despawn": "passed: native server destruction removed the client aircraft",
+  "Authentication": "passed: matching protocol/catalog accepted; mismatched protocol and missing compatibility offer rejected before remote mission/player spawn; original game authentication retained",
+  "SessionRegistration": "passed: all six socket modes, repeated configuration and disconnect keep a stable definition index; inactive/unknown spawning blocked; stock A-19 preserved",
+  "SinglePlayer": "passed: exact DLL, native offline spawn, inventory/factory/queue fixtures and restrained two-engine run-up",
+  "ExistingPluginDLLsUnchanged": 11,
+  "OriginalA19": "preserved",
+  "AirframeDamageParts": 33,
+  "DirectCallAudit": "passed; two loopback endpoint-construction calls explicitly scoped to the disposable developer test hook",
+  "SeparateTwoPCSteamSession": "not tested",
+  "FullFlightAndCombatBalance": "not tested",
+  "TestScope": "Native Free Flight multiplayer mission with a restrained test aircraft and automated observer/client. Not a full campaign playthrough or a separate two-PC Steam session."
 }

@@ -1,10 +1,32 @@
-[Info   :A-19J Jet Conversion] A19J BUILD CHECK PASSED: separate A-19J built for offline registration; 2 jets, no propfans, original A-19 unchanged.
-[Info   :A-19J Jet Conversion] A19J EXHAUST VISUAL CHECK PASSED: complete housings, circular lips and recessed interiors registered at near and distant LODs.
-[Info   :A-19J Jet Conversion] A19J OFFLINE GUARD VALIDATION PASSED: all online socket modes and unknown mode denied, stock A-19 allowed, repeated registration/removal and later definition preserved.
+A19J MP CLIENT CONTEXT: timeScale=1, ignition=True, density=1.032635, fuel=4780.453, throttle=1
+A19J MP CLIENT SNAPSHOT: NetId=147, RPMx1000=999
+A19J MP CLIENT VALIDATION PASSED: real remote client with matching identity, two jets, native engine state and despawn.
+A19J VALIDATION EXIT CODE: 0
+A19J MP TEST MISSION: Free Flight - Heartland
+A19J TEST SOCKET BIND: [::1]:28791
+A19J MP HOST READY: loopback-only; A-19J already spawned for late-join test. NetId=147
+A19J MP TEST RECEIVED stage=1, stock=0
+A19J MP TEST RECEIVED stage=2, stock=102
+A19J MP TEST RECEIVED stage=4, stock=0
+A19J MP REMOTE SNAPSHOT: NetId=147, engines=2, RPMx1000=999
+A19J MP TEST RECEIVED stage=5, stock=0
+A19J MP HOST VALIDATION PASSED: native UDP authentication, version/catalog handshake, late-join prefab, two remote jets, engine state and despawn.
+A19J VALIDATION EXIT CODE: 0
+A19J MP CLIENT REJECTION PASSED: mismatch
+A19J VALIDATION EXIT CODE: 0
+A19J MP TEST MISSION: Free Flight - Heartland
+A19J TEST SOCKET BIND: [::1]:28791
+A19J MP HOST READY: loopback-only negative compatibility test.
+A19J MP REJECTION VALIDATION PASSED: rejected before remote mission/player spawn.
+A19J VALIDATION EXIT CODE: 0
+A19J MP CLIENT REJECTION PASSED: missing
+A19J VALIDATION EXIT CODE: 0
+[Info   :A-19J Jet Conversion] A19J BUILD CHECK PASSED: separate A-19J registered for host/client spawning; 2 jets, no propfans, original A-19 unchanged.
+[Info   :A-19J Jet Conversion] A19J NETWORK REGISTRATION VALIDATION PASSED: stable definition across all six socket modes and disconnect; matching catalog accepted, version/catalog/count mismatches rejected, inactive spawn blocked and stock A-19 preserved.
 [Info   :A-19J Jet Conversion] A19J RUNTIME VALIDATION PASSED: registration, clone isolation, original damage parts, electrical power, nozzle references, no afterburners.
 [Info   :A-19J Jet Conversion] A19J spawn validation: opening the offline encyclopedia.
 [Info   :A-19J Jet Conversion] A19J INVENTORY VALIDATION PASSED: real 99 stock, shared consumption, native A-19/A-19J factory production, depleted supply, queued A-19J refill, explicit stock and zero preserved, faction restrictions inherited, online cleanup.
-[Info   :A-19J Jet Conversion] A19J PATCHED SPAWN GUARD PASSED: online-mode probe rejected before instantiation without opening an online socket; actual offline local host accepted.
+[Info   :A-19J Jet Conversion] A19J SERVER SPAWN GUARD PASSED: active native server accepted.
 [Info   :A-19J Jet Conversion] A19J SPAWN VALIDATION PASSED: live offline encyclopedia aircraft, two initialized jet controls/states, attached nozzle physics and original airframe.
 [Info   :A-19J Jet Conversion] A19J run-up validation: restrained offline engine start, full throttle for 20 seconds.
 [Info   :A-19J Jet Conversion] A19J run-up result: engine_L = 47995 N, RPM ratio 1.000

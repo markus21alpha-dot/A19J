@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 — 2026-11-08
+
+- Added host/client aircraft registration and removed offline-only hiding.
+- Added version and ordered-definition compatibility checks before native authentication completes.
+- Preserved definition indices across session changes and refreshed the client prefab registry.
+- Made inventory mutation server-authoritative; clients receive native stock replication and matching restrictions.
+- Added separate localhost host/client native-mission validation and missing/mismatched peer rejection checks.
+- Retained original aircraft, exhaust geometry, native weapons, controls and damage systems.
+
 ## 0.1.3 — 2026-11-08
 
 - Fix missing A-19J faction stock in existing missions by using the A-19 conversion pool when no independent A19J supply is authored.
@@ -31,4 +40,5 @@
 - Created A-19J as a separate A-19 variant.
 - Removed pusher propellers and fitted two non-afterburning native jet engines.
 - Retained the A-19 airframe, cockpit, weapons, armour and fuel layout.
+
 
